@@ -54,8 +54,8 @@ const questions: Question[] = [
   },
   { text: "What is today's date?", inputType: 'date' },
   {
-    text: "One final vision. The oracle sees someone asking you to stand at their side on the most sacred day of their life. What stirs within you?",
-    isReveal: true,
+    text: "",
+    isReveal: true
   },
 ]
 
@@ -86,6 +86,7 @@ export default function Quiz() {
   const [slideOut, setSlideOut] = useState(false)
   const [revealSelected, setRevealSelected] = useState(false)
   const [yesBtnSelected, setYesBtnSelected] = useState(false)
+  const [noButtonPos, setNoButtonPos] = useState<{ x: number; y: number } | null>(null)
 
   const starsRef = useRef<HTMLDivElement>(null)
   const yesBtnRef = useRef<HTMLDivElement>(null)
@@ -104,60 +105,12 @@ export default function Quiz() {
     return () => { container.innerHTML = '' }
   }, [])
 
-  // No button: flee behavior
-  useEffect(() => {
-    if (phase !== 'bridesmaid' || yesBtnSelected) return
-
-    const no = document.createElement('div')
-    const baseStyle = [
-      'display:flex', 'align-items:center', 'justify-content:center',
-      'border:1px solid rgba(180,140,255,0.15)', 'border-radius:12px',
-      'background:rgba(255,255,255,0.02)', 'cursor:pointer',
-      'font-size:1.05rem', 'color:#E8E0F5',
-      'position:fixed', 'z-index:9999', 'transition:none',
-    ].join(';')
-    no.setAttribute('style', baseStyle)
-    no.textContent = 'No'
-    document.body.appendChild(no)
-
-    const positionNo = () => {
-      if (!yesBtnRef.current) return
-      const r = yesBtnRef.current.getBoundingClientRect()
-      no.style.left = (r.right + 12) + 'px'
-      no.style.top = r.top + 'px'
-      no.style.width = r.width + 'px'
-      no.style.height = r.height + 'px'
-    }
-    const timer = setTimeout(positionNo, 60)
-
-    function flee(cx: number, cy: number) {
-      const r = no.getBoundingClientRect()
-      const bx = r.left + r.width / 2
-      const by = r.top + r.height / 2
-      const dist = Math.sqrt((bx - cx) ** 2 + (by - cy) ** 2)
-      if (dist < 130) {
-        const w = r.width || 140, h = r.height || 52
-        const nx = w / 2 + 16 + Math.random() * (window.innerWidth - w - 32)
-        const ny = h / 2 + 16 + Math.random() * (window.innerHeight - h - 32)
-        no.style.left = (nx - w / 2) + 'px'
-        no.style.top = (ny - h / 2) + 'px'
-        no.style.right = 'auto'
-      }
-    }
-
-    const onMove = (e: MouseEvent) => flee(e.clientX, e.clientY)
-    const onDown = (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); flee(e.clientX, e.clientY) }
-
-    document.addEventListener('mousemove', onMove)
-    no.addEventListener('mousedown', onDown)
-
-    return () => {
-      clearTimeout(timer)
-      document.removeEventListener('mousemove', onMove)
-      no.removeEventListener('mousedown', onDown)
-      if (document.body.contains(no)) document.body.removeChild(no)
-    }
-  }, [phase, yesBtnSelected])
+  function handleNoClick() {
+    const w = 140, h = 52
+    const x = 16 + Math.random() * (window.innerWidth - w - 32)
+    const y = 16 + Math.random() * (window.innerHeight - h - 32)
+    setNoButtonPos({ x, y })
+  }
 
   const q = questions[currentQ]
   const isRevealQ = 'isReveal' in q
@@ -194,6 +147,27 @@ export default function Quiz() {
   return (
     <>
       <div className="stars" ref={starsRef} />
+
+      {/* Fleeing No button - rendered outside container to escape overflow:hidden */}
+      {phase === 'bridesmaid' && !yesBtnSelected && noButtonPos && (
+        <div
+          className="option"
+          style={{
+            position: 'fixed',
+            left: noButtonPos.x,
+            top: noButtonPos.y,
+            width: '140px',
+            height: '52px',
+            justifyContent: 'center',
+            textAlign: 'center',
+            zIndex: 9999,
+            transition: 'left 0.3s ease, top 0.3s ease',
+          }}
+          onClick={handleNoClick}
+        >
+          <span className="option-text" style={{ fontStyle: 'normal' }}>No</span>
+        </div>
+      )}
 
       <div className="container">
 
@@ -321,16 +295,26 @@ export default function Quiz() {
             <div className="question-text" style={{ textAlign: 'center' }}>
               Will you be my Bridesmaid?{'\n'}March 27th, 2027
             </div>
-            <div className="options" style={{ flexDirection: 'row', gap: '0.75rem' }}>
-              <div
-                ref={yesBtnRef}
-                className={`option${yesBtnSelected ? ' selected' : ''}`}
-                style={{ width: '140px', height: '52px', justifyContent: 'center', textAlign: 'center', flexShrink: 0 }}
-                onClick={handleYes}
-              >
-                <span className="option-text" style={{ fontStyle: 'normal' }}>Yes</span>
+            <div style={{ display: 'flex', justifyContent: 'center', width: '100%', marginTop: '1.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <div
+                  ref={yesBtnRef}
+                  className={`option${yesBtnSelected ? ' selected' : ''}`}
+                  style={{ width: '140px', height: '52px', justifyContent: 'center', textAlign: 'center', flexShrink: 0 }}
+                  onClick={handleYes}
+                >
+                  <span className="option-text" style={{ fontStyle: 'normal' }}>Yes</span>
+                </div>
+                {!yesBtnSelected && !noButtonPos && (
+                  <div
+                    className="option"
+                    style={{ width: '140px', height: '52px', justifyContent: 'center', textAlign: 'center', flexShrink: 0 }}
+                    onClick={handleNoClick}
+                  >
+                    <span className="option-text" style={{ fontStyle: 'normal' }}>No</span>
+                  </div>
+                )}
               </div>
-              {/* No button rendered imperatively via useEffect — flees cursor across screen */}
             </div>
           </div>
         )}
@@ -342,20 +326,21 @@ export default function Quiz() {
             <div className="question-text" style={{ fontSize: 'clamp(1.3rem, 4vw, 1.7rem)', marginBottom: '0.5rem' }}>
               Yayyy Thank you! 🎉
             </div>
-            <p style={{ fontFamily: "'Crimson Pro', serif", fontSize: '1.2rem', color: 'var(--lavender)', fontStyle: 'italic', lineHeight: 1.8, marginBottom: '0.4rem' }}>
+            <p style={{ fontFamily: "'Crimson Pro', serif", fontSize: '1.4rem', color: 'var(--lavender)', fontStyle: 'italic', lineHeight: 1.8, marginBottom: '0.4rem' }}>
               You have exactly one year to lose weight, good luck!
             </p>
             <p style={{ fontFamily: "'Cinzel', serif", fontSize: '0.9rem', color: 'var(--gold)', letterSpacing: '0.12em', marginTop: '0.8rem' }}>
               Ciao 👋
             </p>
-            <p style={{ fontFamily: "'Cinzel', serif", fontSize: '0.75rem', color: 'var(--gold)', letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: '1.8rem', marginBottom: '0.8rem' }}>
-              Your Fortune Teller
-            </p>
+
             <img
               src="/fortune-teller.jpg"
               alt="Your Fortune Teller"
               style={{ width: '180px', height: '180px', objectFit: 'cover', borderRadius: '50%', border: '2px solid var(--violet)', boxShadow: '0 0 24px rgba(123,79,212,0.4)', display: 'block', margin: '0 auto' }}
             />
+            <p style={{ fontFamily: "'Cinzel', serif", fontSize: '0.75rem', color: 'var(--gold)', letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: '1.8rem', marginBottom: '0.8rem' }}>
+              Your Fortune Teller
+            </p>
           </div>
         )}
 

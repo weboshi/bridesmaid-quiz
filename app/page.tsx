@@ -293,7 +293,7 @@ export default function Quiz() {
           <div className="card" style={{ animation: 'fadeUp 0.7s ease both', textAlign: 'center' }}>
             <div className="question-num" style={{ justifyContent: 'center' }}>✦ The True Prophecy ✦</div>
             <div className="question-text" style={{ textAlign: 'center' }}>
-              Will you be my Maid of Honor?{'\n'}March 27th, 2027
+              Will you be my Bridesmaid?{'\n'}March 27th, 2027
             </div>
             <div style={{ display: 'flex', justifyContent: 'center', width: '100%', marginTop: '1.5rem' }}>
               <div style={{ display: 'flex', gap: '0.75rem' }}>
